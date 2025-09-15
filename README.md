@@ -1,4 +1,4 @@
-### Getting Started
+## Getting Started
 
 This guide will help you get the project up and running on your local machine. The project is split into two parts: a backend API and a frontend application.
 
@@ -12,7 +12,7 @@ Node.js: Required for the frontend. You can download the installer here: https:/
 
 npm: The Node.js package manager, which is installed with Node.js.
 
-### Backend
+## Backend
 
 The backend is built with Python and uses Uvicorn to run the API.
 
@@ -34,7 +34,7 @@ To start the API server, run the following command:
 
 The --reload flag will automatically restart the server whenever you make changes to your code. The API will be available at http://127.0.0.1:8000 (or http://localhost:8000).
 
-### Frontend
+## Frontend
 
 The frontend is a Node.js application.
 
