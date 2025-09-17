@@ -18,7 +18,7 @@ run-backend:
 
 run-frontend:
 	@echo "Starting frontend and opening Firefox..."
-	@(sleep 5 && safari http://localhost:9002/) &
+	@(sleep 5 && Safari http://localhost:9002/) &
 	@cd saga-frontend && npm run dev
 
 stop:

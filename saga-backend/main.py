@@ -72,7 +72,7 @@ def home():
 
 # Add new entry to the .db database
 @app.post("/journal/")
-async def add_entry(entry: JournalEntry):
+def add_entry(entry: JournalEntry):
     entry.id = str(uuid.uuid4())
     if not entry.date:
         entry.date = datetime.now().isoformat()
@@ -97,8 +97,8 @@ async def add_entry(entry: JournalEntry):
 
     #journal_db.append(entry)
     # Insert the new entry into the database
-    cursor.execute("INSERT INTO journal_entries (id, title, content, summary) VALUES (?, ?, ?, ?)", 
-                   (entry.id, entry.title, entry.content, entry.summary))
+    cursor.execute("INSERT INTO journal_entries (id, title, content, date, summary) VALUES (?, ?, ?, ?, ?)", 
+                   (entry.id, entry.title, entry.content, entry.date, entry.summary))
     conn.commit()
     return {"message": "Entry added with summary", "entry": entry}
 
@@ -111,19 +111,6 @@ def get_entries():
     conn.commit()
     return {"entries": entries}
 
-
-# @app.get("/journal/")
-# def get_entries():
-#     return {"entries": journal_db}
-
-# @app.put("/journal/{entry_id}")
-# def update_entry(entry_id: str, updated_entry: JournalEntry):
-#     for index, entry in enumerate(journal_db):
-#         if entry.id == entry_id:
-#             journal_db[index].title = updated_entry.title
-#             journal_db[index].content = updated_entry.content
-#             return {"message": f"Entry with id {entry_id} updated successfully", "entry": journal_db[index]}
-#     raise HTTPException(status_code=404, detail="Entry not found")
 
 @app.put("/journal/{entry_id}")
 def update_entry(entry_id: str, updated_entry: JournalEntry):
@@ -139,7 +126,7 @@ def update_entry(entry_id: str, updated_entry: JournalEntry):
     new_summary = original_summary
     # If the content has changed, generate a new summary
     if updated_entry.content != original_content:
-        prompt_text = f"""Summarize this journal post in one short sentence, in the second person in past tense: "{updated_entry.content}"""
+        prompt_text = f"""Summarize this journal post in one short sentence, in the second person in past tense: \"{updated_entry.content}\""""
         try:
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
@@ -183,17 +170,6 @@ def update_entry(entry_id: str, updated_entry: JournalEntry):
     return {"entry": updated_entry_dict}
 
 
-# @app.delete("/journal/{entry_id}")
-# def delete_entry(entry_id: str):
-#     global journal_db
-#     initial_length = len(journal_db)
-#     journal_db = [entry for entry in journal_db if entry.id != entry_id]
-    
-#     if len(journal_db) < initial_length:
-#         return {"message": f"Entry with id {entry_id} deleted successfully"}
-#     else:
-#         raise HTTPException(status_code=404, detail="Entry not found")
-
 @app.delete("/journal/{entry_id}")
 def delete_entry(entry_id: str):
     cursor.execute("DELETE FROM journal_entries WHERE id = ?", (entry_id,))
@@ -209,7 +185,7 @@ class PromptRequest(BaseModel):
     recentEntries: str
 
 @app.post("/generate-prompt")
-async def generate_prompt(request: PromptRequest):
+def generate_prompt(request: PromptRequest):
     system_message = "You are a helpful assistant that provides writing prompts."
     if request.promptType == 'journal':
         system_message = "You are an insightful assistant that provides journal prompts to encourage self-reflection."
