@@ -69,48 +69,91 @@ export function useJournal() {
     }
   }, []);
   
-  const updateEntry = useCallback(async (id: string, content: string, date: Date, promptType: PromptType, prompt: string | undefined, title: string | undefined): Promise<JournalEntry | undefined> => {
-    // Note: The provided main.py doesn't have an update endpoint.
-    // You will need to implement a `PUT /journal/{entry_id}` or similar endpoint in your FastAPI backend.
-    // For now, this function will log a message.
-    console.log("Update functionality needs a corresponding backend endpoint.");
+  // const updateEntry = useCallback(async (id: string, content: string, date: Date, promptType: PromptType, prompt: string | undefined, title: string | undefined): Promise<JournalEntry | undefined> => {
+  //   // Note: The provided main.py doesn't have an update endpoint.
+  //   // You will need to implement a `PUT /journal/{entry_id}` or similar endpoint in your FastAPI backend.
+  //   // For now, this function will log a message.
+  //   console.log("Update functionality needs a corresponding backend endpoint.");
     
-    // Once you have an endpoint, the logic would look something like this:
-    /*
-    try {
-      const response = await fetch(`${API_URL}/journal/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content }),
-      });
+  //   // Once you have an endpoint, the logic would look something like this:
+  //   /*
+  //   try {
+  //     const response = await fetch(`${API_URL}/journal/${id}`, {
+  //       method: 'PUT',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ title, content }),
+  //     });
 
-      if (!response.ok) {
-        throw new Error('Failed to update entry');
+  //     if (!response.ok) {
+  //       throw new Error('Failed to update entry');
+  //     }
+
+  //     const updatedEntry = await response.json();
+
+  //     setEntries(prevEntries => 
+  //       prevEntries.map(entry => (entry.id === id ? updatedEntry : entry))
+  //     );
+
+  //     return updatedEntry;
+  //   } catch (error) {
+  //     console.error("Error updating entry:", error);
+  //     return undefined;
+  //   }
+  //   */
+    
+  //   // Returning the existing entry optimistically for the UI
+  //   const entryToUpdate = entries.find(e => e.id === id);
+  //   if(entryToUpdate) {
+  //       const updated = { ...entryToUpdate, content, title: title || entryToUpdate.title, date: date.toISOString() };
+  //       setEntries(prev => prev.map(e => e.id === id ? updated : e));
+  //       return updated;
+  //   }
+
+  //   return undefined;
+  // }, [entries]);
+
+
+  const updateEntry = useCallback(
+    async (
+      id: string,
+      content: string,
+      date: Date,
+      promptType: PromptType,
+      prompt: string | undefined,
+      title: string | undefined
+    ): Promise<JournalEntry | undefined> => {
+      try {
+        const response = await fetch(`${API_URL}/journal/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: title || 'Untitled Entry',
+            content,
+            date: date.toISOString(),
+            // Do not send summary; backend can regenerate if needed
+          }),
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to update entry');
+        }
+  
+        // FastAPI should return { entry: { ... } }
+        const { entry: updatedEntry } = await response.json();
+  
+        // Update local state with the returned updated entry
+        setEntries(prevEntries =>
+          prevEntries.map(entry => (entry.id === id ? updatedEntry : entry))
+        );
+  
+        return updatedEntry;
+      } catch (error) {
+        console.error("Error updating entry:", error);
+        return undefined;
       }
-
-      const updatedEntry = await response.json();
-
-      setEntries(prevEntries => 
-        prevEntries.map(entry => (entry.id === id ? updatedEntry : entry))
-      );
-
-      return updatedEntry;
-    } catch (error) {
-      console.error("Error updating entry:", error);
-      return undefined;
-    }
-    */
-    
-    // Returning the existing entry optimistically for the UI
-    const entryToUpdate = entries.find(e => e.id === id);
-    if(entryToUpdate) {
-        const updated = { ...entryToUpdate, content, title: title || entryToUpdate.title, date: date.toISOString() };
-        setEntries(prev => prev.map(e => e.id === id ? updated : e));
-        return updated;
-    }
-
-    return undefined;
-  }, [entries]);
+    },
+    []
+  );
 
   const deleteEntry = useCallback((id: string) => {
     // Note: The provided main.py doesn't have a delete endpoint.

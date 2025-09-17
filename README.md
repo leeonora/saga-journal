@@ -12,6 +12,18 @@ Node.js: Required for the frontend. You can download the installer here: https:/
 
 npm: The Node.js package manager, which is installed with Node.js.
 
+## Running with Make
+
+A `Makefile` is provided to simplify the development workflow.
+
+### Commands
+
+*   `make install`: Install all dependencies for both the frontend and backend.
+*   `make run`: Start both the backend and frontend servers. The frontend will open automatically in Firefox.
+*   `make run-backend`: Start only the backend server.
+*   `make run-frontend`: Start only the frontend server. The frontend will open automatically in Firefox.
+*   `make stop`: Stop the backend server when it's running in the background (i.e., after using `make run`).
+
 ## Backend
 
 The backend is built with Python and uses Uvicorn to run the API.

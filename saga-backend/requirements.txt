@@ -4,3 +4,4 @@ pydantic==2.11.7
 typing-extensions==4.15.0
 python-dotenv
 openai
+sqlite==3.50.2
