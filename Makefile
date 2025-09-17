@@ -17,10 +17,12 @@ run-backend:
 	@cd saga-backend && uvicorn main:app --reload
 
 run-frontend:
-	@echo "Starting frontend and opening Safari..."
-	@(sleep 5 && open -a Safari http://localhost:9002/) &
+	@echo "Starting frontend and opening default browser..."
+	@(sleep 5 && open http://localhost:9002/) &
 	@cd saga-frontend && npm run dev
 
 stop:
 	@echo "Stopping backend..."
 	@pkill -f "uvicorn main:app --reload"
+	@echo "Stopping frontend..."
+	@pkill -f "npm run dev"
