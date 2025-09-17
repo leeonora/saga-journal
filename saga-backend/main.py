@@ -190,9 +190,9 @@ def generate_prompt(request: PromptRequest):
     if request.promptType == 'journal':
         system_message = "You are an insightful assistant that provides journal prompts to encourage self-reflection."
     elif request.promptType == 'creative':
-        system_message = "You are a creative assistant that provides imaginative prompts for creative writing."
+        system_message = "You are a creative assistant that provides vague prompts for creative writing."
 
-    user_message = "Based on the following recent entries, generate a new writing prompt."
+    user_message = "Based on the following recent entries, generate a new one sentence writing prompt."
     if request.recentEntries:
         user_message += f'\n\nRecent Entries:\n{request.recentEntries}'
     else:
@@ -205,7 +205,7 @@ def generate_prompt(request: PromptRequest):
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_message}
             ],
-            max_tokens=100
+            max_tokens=60
         )
         prompt = response.choices[0].message.content.strip()
         return {"prompt": prompt}

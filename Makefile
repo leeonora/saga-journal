@@ -17,8 +17,8 @@ run-backend:
 	@cd saga-backend && uvicorn main:app --reload
 
 run-frontend:
-	@echo "Starting frontend and opening Firefox..."
-	@(sleep 5 && Safari http://localhost:9002/) &
+	@echo "Starting frontend and opening Safari..."
+	@(sleep 5 && open -a Safari http://localhost:9002/) &
 	@cd saga-frontend && npm run dev
 
 stop:
