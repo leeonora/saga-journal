@@ -127,6 +127,34 @@ def get_entries():
 
 @app.put("/journal/{entry_id}")
 def update_entry(entry_id: str, updated_entry: JournalEntry):
+    # Fetch the original entry from the database
+    cursor.execute("SELECT content, summary FROM journal_entries WHERE id = ?", (entry_id,))
+    original_entry_row = cursor.fetchone()
+
+    if not original_entry_row:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    original_content, original_summary = original_entry_row
+
+    new_summary = original_summary
+    # If the content has changed, generate a new summary
+    if updated_entry.content != original_content:
+        prompt_text = f"""Summarize this journal post in one short sentence, in the second person in past tense: "{updated_entry.content}"""
+        try:
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You summarize journal entries in a single sentence."},
+                    {"role": "user", "content": prompt_text}
+                ],
+                max_tokens=60
+            )
+            new_summary = response.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"Error calling OpenAI API: {e}")
+            new_summary = "Could not generate summary."
+
+    # Update the database with the new content and summary
     cursor.execute(
         """
         UPDATE journal_entries
@@ -135,7 +163,7 @@ def update_entry(entry_id: str, updated_entry: JournalEntry):
         """,
         (updated_entry.title, 
          updated_entry.content,
-         updated_entry.summary,
+         new_summary,
          updated_entry.date if updated_entry.date else datetime.now().isoformat(), 
          entry_id)
     )
@@ -148,7 +176,7 @@ def update_entry(entry_id: str, updated_entry: JournalEntry):
         "id": entry_id,
         "title": updated_entry.title,
         "content": updated_entry.content,
-        "summary": updated_entry.summary,
+        "summary": new_summary,
         "date": updated_entry.date if updated_entry.date else datetime.now().isoformat()
     }
 

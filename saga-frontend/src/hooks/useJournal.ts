@@ -155,12 +155,20 @@ export function useJournal() {
     []
   );
 
-  const deleteEntry = useCallback((id: string) => {
-    // Note: The provided main.py doesn't have a delete endpoint.
-    // You will need to implement a `DELETE /journal/{entry_id}` endpoint.
-    // For now, this function just updates the local state.
-    console.log("Delete functionality needs a corresponding backend endpoint.");
-    setEntries(prevEntries => prevEntries.filter(entry => entry.id !== id));
+  const deleteEntry = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`${API_URL}/journal/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete entry');
+      }
+
+      setEntries(prevEntries => prevEntries.filter(entry => entry.id !== id));
+    } catch (error) {
+      console.error("Error deleting entry:", error);
+    }
   }, []);
 
 
