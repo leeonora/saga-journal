@@ -33,8 +33,8 @@ type JournalEntryCardProps = {
 };
 
 const promptTypeLabels: { [key in NonNullable<JournalEntry['promptType']>] : string } = {
-    journal: 'Journal Prompt',
-    creative: 'Creative Writing Prompt',
+    journal: 'Journal',
+    creative: 'Creative',
     freeform: 'Freeform'
 };
 
