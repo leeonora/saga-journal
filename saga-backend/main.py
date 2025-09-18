@@ -40,6 +40,8 @@ class JournalEntry(BaseModel):
     content: str
     date: Optional[str] = None
     summary: Optional[str] = None
+    prompt: Optional[str] = None
+    promptType: Optional[str] = None
 
 
 # Fake memory storage (in-memory)
@@ -58,7 +60,9 @@ CREATE TABLE IF NOT EXISTS journal_entries (
     title TEXT NOT NULL,
     content TEXT NOT NULL,
     date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    summary TEXT DEFAULT NULL       
+    summary TEXT DEFAULT NULL,
+    prompt TEXT DEFAULT NULL,
+    promptType TEXT DEFAULT NULL
 );
 """)
 conn.commit() # save changes
@@ -97,17 +101,17 @@ def add_entry(entry: JournalEntry):
 
     #journal_db.append(entry)
     # Insert the new entry into the database
-    cursor.execute("INSERT INTO journal_entries (id, title, content, date, summary) VALUES (?, ?, ?, ?, ?)", 
-                   (entry.id, entry.title, entry.content, entry.date, entry.summary))
+    cursor.execute("INSERT INTO journal_entries (id, title, content, date, summary, prompt, promptType) VALUES (?, ?, ?, ?, ?, ?, ?)", 
+                   (entry.id, entry.title, entry.content, entry.date, entry.summary, entry.prompt, entry.promptType))
     conn.commit()
     return {"message": "Entry added with summary", "entry": entry}
 
 # Fetch all entries from the .db database
 @app.get("/journal/")
 def get_entries():
-    cursor.execute("SELECT id, title, content, date, summary FROM journal_entries")
+    cursor.execute("SELECT id, title, content, date, summary, prompt, promptType FROM journal_entries")
     rows = cursor.fetchall()
-    entries = [{"id": row[0], "title": row[1], "content": row[2], "date": row[3], "summary": row[4]} for row in rows]
+    entries = [{"id": row[0], "title": row[1], "content": row[2], "date": row[3], "summary": row[4], "prompt": row[5], "promptType": row[6]} for row in rows]
     conn.commit()
     return {"entries": entries}
 
@@ -115,13 +119,13 @@ def get_entries():
 @app.put("/journal/{entry_id}")
 def update_entry(entry_id: str, updated_entry: JournalEntry):
     # Fetch the original entry from the database
-    cursor.execute("SELECT content, summary FROM journal_entries WHERE id = ?", (entry_id,))
+    cursor.execute("SELECT content, summary, prompt, promptType FROM journal_entries WHERE id = ?", (entry_id,))
     original_entry_row = cursor.fetchone()
 
     if not original_entry_row:
         raise HTTPException(status_code=404, detail="Entry not found")
 
-    original_content, original_summary = original_entry_row
+    original_content, original_summary, original_prompt, original_promptType = original_entry_row
 
     new_summary = original_summary
     # If the content has changed, generate a new summary
@@ -145,13 +149,15 @@ def update_entry(entry_id: str, updated_entry: JournalEntry):
     cursor.execute(
         """
         UPDATE journal_entries
-        SET title = ?, content = ?, summary = ?, date = ?
+        SET title = ?, content = ?, summary = ?, date = ?, prompt = ?, promptType = ?
         WHERE id = ?
         """,
         (updated_entry.title, 
          updated_entry.content,
          new_summary,
          updated_entry.date if updated_entry.date else datetime.now().isoformat(), 
+         updated_entry.prompt,
+         updated_entry.promptType,
          entry_id)
     )
     conn.commit()
@@ -164,10 +170,14 @@ def update_entry(entry_id: str, updated_entry: JournalEntry):
         "title": updated_entry.title,
         "content": updated_entry.content,
         "summary": new_summary,
-        "date": updated_entry.date if updated_entry.date else datetime.now().isoformat()
+        "date": updated_entry.date if updated_entry.date else datetime.now().isoformat(),
+        "prompt": updated_entry.prompt,
+        "promptType": updated_entry.promptType
     }
 
     return {"entry": updated_entry_dict}
+
+
 
 
 @app.delete("/journal/{entry_id}")
@@ -188,7 +198,30 @@ class PromptRequest(BaseModel):
 def generate_prompt(request: PromptRequest):
     system_message = "You are a helpful assistant that provides writing prompts."
     if request.promptType == 'journal':
-        system_message = "You are an insightful assistant that provides journal prompts to encourage self-reflection."
+        system_message = """You are an elite, empathetic journal prompt generator. Your task is to craft deeply thoughtful and emotionally resonant prompts that encourage personal reflection, catharsis, and self-discovery.
+            
+            **Constraints & Rules:**
+            - All prompts must be open-ended and designed for an individual's personal use.
+            - The prompts should delve into complex emotions, past experiences, or personal values. Avoid simple, factual questions.
+            - Do not ask about fictional topics, daily routines, or simple to-do lists.
+            - Prompts should be concise and direct.
+
+            **Examples of Desired Prompts:**
+            1. What memory from your past, no matter how small, still holds emotional weight for you today?
+            2. Write about a moment you felt truly unseen and the emotions that came with it.
+            3. Describe a moment of deep gratitude, and not just what you were grateful for, but how it felt in your body.
+            4. What's an aspect of your personality you're trying to hide from the world, and why?
+            5. Write about a time you stood up for yourself in a way that surprised you. What did that feel like?
+
+            **Desired Output Format:**
+            - The response should be max two sentences.
+            - Each prompt should be a single, clear question or command.
+
+            **Tone:**
+            - The tone should be empathetic, profound, and encouraging of vulnerability.
+            """
+        
+
     elif request.promptType == 'creative':
         system_message = """You are a writing prompt generator. Your task is to craft unique writing prompts for users.
 
@@ -215,7 +248,7 @@ def generate_prompt(request: PromptRequest):
             - The tone should be minimalist, have quiet melancholy, or dark humor.
             """
 
-    user_message = "Based on the following recent entries, generate a new one sentence writing prompt."
+    user_message = "Based on the following recent entries, generate a new one-sentence writing prompt."
     if request.recentEntries:
         user_message += f'\n\nRecent Entries:\n{request.recentEntries}'
     else:

@@ -32,6 +32,12 @@ type JournalEntryCardProps = {
   isSelected: boolean;
 };
 
+const promptTypeLabels: { [key in NonNullable<JournalEntry['promptType']>] : string } = {
+    journal: 'Journal Prompt',
+    creative: 'Creative Writing Prompt',
+    freeform: 'Freeform'
+};
+
 export function JournalEntryCard({ entry, onSelect, onDelete, isSelected }: JournalEntryCardProps) {
   const formattedDate = format(new Date(entry.date), "h:mm a");
 
@@ -50,11 +56,9 @@ export function JournalEntryCard({ entry, onSelect, onDelete, isSelected }: Jour
                     {entry.title}
                   </CardTitle>
                   <div className="flex items-center gap-2 pt-0.5">
-                    {entry.promptType && (
-                        <Badge variant="outline" className="text-[10px] capitalize">
-                            {entry.promptType}
-                        </Badge>
-                    )}
+                    <Badge variant="outline" className="text-[10px] capitalize">
+                        {entry.promptType ? promptTypeLabels[entry.promptType] : 'Freeform'}
+                    </Badge>
                     <CardDescription className="text-xs text-muted-foreground whitespace-nowrap">
                         {formattedDate}
                     </CardDescription>
