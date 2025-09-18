@@ -209,7 +209,7 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
                     <SelectContent>
                         <SelectItem value="reflective">Reflective</SelectItem>
                         <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="creative">Creative Writing</SelectItem>
+                        <SelectItem value="creative">Creative</SelectItem>
                     </SelectContent>
                  </Select>
                 <Button type="button" variant="outline" className="border-accent text-accent-foreground hover:bg-accent/80 hover:text-accent-foreground" disabled={isLoadingPrompt} onClick={handleGeneratePrompt}>
