@@ -197,7 +197,7 @@ class PromptRequest(BaseModel):
 @app.post("/generate-prompt")
 def generate_prompt(request: PromptRequest):
     system_message = "You are a helpful assistant that provides writing prompts."
-    if request.promptType == 'journal':
+    if request.promptType == 'reflective':
         system_message = """You are an elite, empathetic journal prompt generator. Your task is to craft deeply thoughtful and emotionally resonant prompts that encourage personal reflection, catharsis, and self-discovery.
             
             **Constraints & Rules:**
@@ -219,6 +219,25 @@ def generate_prompt(request: PromptRequest):
 
             **Tone:**
             - The tone should be empathetic, profound, and encouraging of vulnerability.
+            """
+    elif request.promptType == 'daily':
+        system_message = """You are a friendly and encouraging journal prompt generator. Your task is to create simple, positive, and forward-looking prompts for a daily journal.
+            
+            **Constraints & Rules:**
+            - Prompts should be focused on the present or immediate future.
+            - Prompts should be positive and encouraging.
+            - Prompts should be simple and easy to answer.
+
+            **Examples of Desired Prompts:**
+            1. What is one thing you are looking forward to today?
+            2. What is a small act of kindness you can do for someone today?
+            3. What is one thing you are grateful for right now?
+
+            **Desired Output Format:**
+            - The response should be a single, clear question.
+
+            **Tone:**
+            - The tone should be friendly, positive, and encouraging.
             """
         
 

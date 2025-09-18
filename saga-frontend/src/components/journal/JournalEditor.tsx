@@ -63,7 +63,7 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
-  const [promptType, setPromptType] = useState<PromptType>('journal');
+  const [promptType, setPromptType] = useState<PromptType>('daily');
   const [showLines, setShowLines] = useState(false);
   const [entryDate, setEntryDate] = useState<Date>(new Date());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -81,7 +81,7 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
         content: entryToEdit.content,
       });
       setEntryDate(new Date(entryToEdit.date));
-      setPromptType(entryToEdit.promptType || 'journal');
+      setPromptType(entryToEdit.promptType || 'daily');
       setGeneratedPrompt(entryToEdit.prompt || null);
     } else {
        form.reset({ title: "", content: "" });
@@ -207,7 +207,8 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
                         <SelectValue placeholder="Select a prompt type" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="journal">Journaling</SelectItem>
+                        <SelectItem value="reflective">Reflective</SelectItem>
+                        <SelectItem value="daily">Daily</SelectItem>
                         <SelectItem value="creative">Creative Writing</SelectItem>
                     </SelectContent>
                  </Select>

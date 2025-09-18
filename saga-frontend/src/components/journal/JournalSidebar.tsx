@@ -13,6 +13,8 @@ import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { JournalListGrouped } from "./JournalListGrouped";
 import type { SidebarView } from "@/app/page";
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+
 type JournalSidebarProps = {
   entries: JournalEntry[];
   selectedEntry: JournalEntry | null;
@@ -21,6 +23,13 @@ type JournalSidebarProps = {
   onCreateNew: () => void;
   view: SidebarView;
   onViewChange: (view: SidebarView) => void;
+};
+
+const promptTypeLabels: { [key in NonNullable<JournalEntry['promptType']>] : string } = {
+    reflective: 'Reflective',
+    creative: 'Creative',
+    daily: 'Daily',
+    freeform: 'Freeform'
 };
 
 export function JournalSidebar({
@@ -35,6 +44,7 @@ export function JournalSidebar({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     selectedEntry && selectedEntry.date ? parseISO(selectedEntry.date) : new Date()
   );
+  const [filterPromptType, setFilterPromptType] = useState<string>("all");
 
   useEffect(() => {
     if (selectedEntry && selectedEntry.date) {
@@ -46,20 +56,27 @@ export function JournalSidebar({
   }, [selectedEntry, selectedDate]);
 
 
+  const filteredEntries = useMemo(() => {
+    if (filterPromptType === "all") {
+      return entries;
+    }
+    return entries.filter((entry) => entry.promptType === filterPromptType);
+  }, [entries, filterPromptType]);
+
   const entryDates = useMemo(() => {
-    return entries.map((entry) => new Date(entry.date));
-  }, [entries]);
+    return filteredEntries.map((entry) => new Date(entry.date));
+  }, [filteredEntries]);
 
   const entriesForSelectedDate = useMemo(() => {
     if (!selectedDate) return [];
-    return entries
+    return filteredEntries
         .filter((entry) => isSameDay(new Date(entry.date), selectedDate))
         .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [entries, selectedDate]);
+  }, [filteredEntries, selectedDate]);
   
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
-    const entriesOnDate = entries
+    const entriesOnDate = filteredEntries
         .filter((entry) => date && isSameDay(new Date(entry.date), date))
         .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
@@ -86,6 +103,18 @@ export function JournalSidebar({
               </TabsList>
             </Tabs>
         </div>
+        <Select value={filterPromptType} onValueChange={(value: string) => setFilterPromptType(value)}>
+            <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filter by prompt type" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="reflective">Reflective</SelectItem>
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="creative">Creative</SelectItem>
+                <SelectItem value="freeform">Freeform</SelectItem>
+            </SelectContent>
+        </Select>
       </div>
       <Separator />
 
@@ -129,7 +158,7 @@ export function JournalSidebar({
           </>
         ) : (
           <JournalListGrouped
-            entries={entries}
+            entries={filteredEntries}
             selectedEntry={selectedEntry}
             onSelectEntry={onSelectEntry}
             onDeleteEntry={onDeleteEntry}

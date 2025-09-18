@@ -22,8 +22,9 @@ type JournalEntryDisplayProps = {
 };
 
 const promptTypeLabels: { [key in NonNullable<JournalEntry['promptType']>] : string } = {
-    journal: 'Journal',
+    reflective: 'Reflective',
     creative: 'Creative',
+    daily: 'Daily',
     freeform: 'Freeform'
 };
 
@@ -55,21 +56,16 @@ export function JournalEntryDisplay({ entry, onEdit }: JournalEntryDisplayProps)
                  <p className="pt-4 text-base text-muted-foreground font-normal">{entry.summary}</p>
             </CardHeader>
             <CardContent>
-                {entry.promptType !== 'freeform' && entry.prompt && (
-                    <div className="space-y-2 mb-8">
-                        {entry.promptType && (
-                           <Badge variant="outline" className="text-xs font-medium uppercase tracking-wider">{promptTypeLabel}</Badge>
-                        )}
+                <div className="space-y-2 mb-8">
+                    <Badge variant="outline" className="text-xs font-medium uppercase tracking-wider">
+                        {entry.promptType ? promptTypeLabels[entry.promptType] : 'Freeform'}
+                    </Badge>
+                    {entry.prompt && (
                         <CardDescription className="pt-2 italic border-l-2 pl-3 border-accent text-foreground/70">
                             {entry.prompt}
                         </CardDescription>
-                    </div>
-                )}
-                 {entry.promptType === 'freeform' && (
-                     <div className="mb-8">
-                        <Badge variant="outline" className="text-xs font-medium uppercase tracking-wider">{promptTypeLabel}</Badge>
-                    </div>
-                )}
+                    )}
+                </div>
                 <div className="prose prose-sm max-w-none text-foreground/90 text-base leading-relaxed">
                     <MarkdownRenderer content={entry.content} />
                 </div>

@@ -10,4 +10,4 @@ export type JournalEntry = {
   promptType?: PromptType;
 };
 
-export type PromptType = 'journal' | 'creative' | 'freeform';
+export type PromptType = 'reflective' | 'creative' | 'daily' | 'freeform';
