@@ -46,7 +46,7 @@ firestore-debug.log
 
 # Python
 saga-backend/venv/
-saga-backend/__pycache__/
+__pycache__/
 
 # SQLite database files
 *.sqlite3
