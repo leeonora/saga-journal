@@ -198,8 +198,13 @@ class PromptRequest(BaseModel):
 def generate_prompt(request: PromptRequest):
     system_message = "You are a helpful assistant that provides writing prompts."
     if request.promptType == 'reflective':
-        system_message = """You are an elite, empathetic journal prompt generator. Your task is to craft deeply thoughtful and emotionally resonant prompts that encourage personal reflection, catharsis, and self-discovery.
+        system_message = """You are a reflection journal prompt generator. Your task is to craft  thoughtful and emotionally resonant prompts that encourage personal reflection and self-discovery.
             
+            ** Input from user:**
+            - Recent entries: The user's recent journal entries. This may include multiple type entries (daily journal, reflective journal or creative writing) separated by new lines or other delimiters.
+            - Always base your response on the recent entries provided by the user. Look for common themes or topics in their recent entries to inspire the new prompt.
+            - If no recent entries are provided, generate a general daily reflective journal prompt.
+
             **Constraints & Rules:**
             - All prompts must be open-ended and designed for an individual's personal use.
             - The prompts should delve into complex emotions, past experiences, or personal values. Avoid simple, factual questions.
@@ -223,6 +228,11 @@ def generate_prompt(request: PromptRequest):
     elif request.promptType == 'daily':
         system_message = """You are a friendly and encouraging journal prompt generator. Your task is to create simple, positive, and forward-looking prompts for a daily journal.
             
+            ** Input from user:**
+            - Recent Entries: The user's recent journal entries. This may include multiple type entries (daily journal, reflective journal or creative writing) separated by new lines or other delimiters.
+            - Always base your response on the recentEntries provided by the user IF provided. Look for common themes or topics in their recent entries to inspire the new prompt.
+            - If no recent entries are provided, generate a general daily journal prompt.
+            
             **Constraints & Rules:**
             - Prompts should be focused on the present or immediate future.
             - Prompts should be positive and encouraging.
@@ -242,34 +252,38 @@ def generate_prompt(request: PromptRequest):
         
 
     elif request.promptType == 'creative':
-        system_message = """You are a writing prompt generator. Your task is to craft unique writing prompts for users.
+        system_message = """ You are a creative writing assistant. Your task is to generate new writing suggestions for users based on their recent journal entries. Tell the user what they are focused on lately (themes/characters/emotions/situations) and suggest a new idea/a writing constraint/twist for them to explore in their next writing session.
+        
+            ** Input from user:**
+            - Recent Entries: The user's recent journal entries. This may include multiple type entries (daily journal, reflective journal or creative writing) separated by new lines or other delimiters.
+            
+            ** Constraints & Rules:**
+            - All suggestions must be original and not repeat or rephrase recent entries.
+            - Suggestions should be open-ended and designed to spark creativity.
 
-            ** Rules:**
             - MOST IMPORTANT: Do NOT include anything about:
-                - hidden rooms
-                - secret doors
-                - hidden notes
-                - messages
-                - forgotten things
-                - mysterious things
-                - letters of any type
-                - photographs of any type
-            - All prompts must be open-ended and minimalist. 
-            - Prompts should be focused on a vague person, emotion or situation. 
-            - Prompts should set up a normal, everyday scenario with a twist, e.g. "a woman is going for a walk". 
-            - Prompts should be in the literary fiction genre. 
-            - Prompts should not be plot-driven or specific to a genre.
+               - hidden rooms
+               - secret doors
+               - hidden notes
+               - messages
+               - forgotten things
+               - mysterious things
+               - letters of any type
+               - photographs of any type
 
-            **Desired Output Format:**
-            - Each prompt should be most two concise sentences. Do not write the word "constraint:" in the prompt itself.
+            ** Desired Output Format:**
+            - The response should be max two sentences.
+            - Be concise.
+            - Tell the user what they are focused on lately (themes/characters/emotions/situations). Be precise.
+            - Always include a writing suggestion, and add an example. Be precise.
+            - Don't tell the user what the writing suggestion will help them with (e.g., "This will help you explore themes of...")
 
-            **Tone:**
-            - The tone should be minimalist, have quiet melancholy, or dark humor.
             """
 
-    user_message = "Based on the following recent entries, generate a new one-sentence writing prompt."
+    user_message = "Generate a new one-sentence writing suggestion. Be inspired by themes or common topics. Do not repeat or rephrase the content of the recent entries."
+    
     if request.recentEntries:
-        user_message += f'\n\nRecent Entries:\n{request.recentEntries}'
+        user_message += f'\n\nRecent Entries:\n{request.recentEntries}' # appends with recent entries if they exist
     else:
         user_message = "Generate a writing prompt."
 
@@ -287,3 +301,5 @@ def generate_prompt(request: PromptRequest):
     except Exception as e:
         print(f"Error calling OpenAI API for prompt generation: {e}")
         raise HTTPException(status_code=500, detail="Could not generate prompt.")
+    
+   
