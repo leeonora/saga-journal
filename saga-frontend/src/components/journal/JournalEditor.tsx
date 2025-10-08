@@ -79,6 +79,7 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
         body: JSON.stringify({
           promptType,
           recentEntries: recentEntries.map(e => e.content).join("\n\n---\n\n"),
+          customPrompt,
         }),
       });
       if (!response.ok) throw new Error("Prompt generation failed");
