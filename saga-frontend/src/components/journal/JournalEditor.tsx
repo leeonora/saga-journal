@@ -46,6 +46,7 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [promptType, setPromptType] = useState<PromptType>('daily');
   const [entryDate, setEntryDate] = useState<Date>(new Date());
+  const [customPrompt, setCustomPrompt] = useState("");
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -175,7 +176,7 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
 
           {/* Top Controls Row */}
           <div className="flex flex-col sm:flex-row items-center gap-3">
-            <Input placeholder="Themes (optional)" className="bg-muted rounded-md p-4" />
+            <Input placeholder="Themes (optional)" className="bg-muted rounded-md p-4" value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)} />
             <Select value={promptType} onValueChange={(value: PromptType) => setPromptType(value)}>
               <SelectTrigger className="w-full sm:w-auto bg-primary text-primary-foreground rounded-md">
                   <SelectValue placeholder="Select a prompt type" />
