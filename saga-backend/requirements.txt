@@ -6,3 +6,6 @@ python-dotenv
 openai
 sqlite==3.50.2
 httpx
+torch
+torchvision
+sentence-transformers
