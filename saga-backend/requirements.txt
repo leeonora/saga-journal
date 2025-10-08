@@ -9,3 +9,4 @@ httpx
 torch
 torchvision
 sentence-transformers
+scikit-learn

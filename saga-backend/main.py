@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 import uuid
 from datetime import datetime
 import sqlite3
-
+from sklearn.metrics.pairwise import cosine_similarity
 # Import from other folders
-from services.embeddings_sbert import get_embedding, embedding_to_blob, embedding_from_blob  # Import the embedding function
+from services.sbert.embeddings_sbert import get_embedding, embedding_to_blob, embedding_from_blob  # Import the embedding function
 from services.openAI.system_messages import reflective_mode, daily_mode, creative_mode
 
 # Load environment variables from .env file
@@ -219,9 +219,39 @@ def generate_prompt(request: PromptRequest):
     ### User message construction
     if request.customPrompt:
         user_message = request.customPrompt
+
+        #################  RAG - retrieve similar entries based on embedding similarity #########################
+        
+        query_embedding = get_embedding(user_message) # get embedding for the custom prompt
+
+        # fetch all journal entry embeddings from db
+        cursor.execute("SELECT id, summaryEmbedding FROM journal_entries")
+        rows = cursor.fetchall()
+
+        entry_ids = [row[0] for row in rows]
+        summary_embeddings = [embedding_from_blob(row[1]) for row in rows if row[1] is not None]
+
+        if summary_embeddings:
+            similarities = cosine_similarity(query_embedding.reshape(1, -1), summary_embeddings)[0] # Edit here for other similarity measures
+
+            # Get top 5 most similar entries
+            similar_entries = sorted(zip(entry_ids, similarities), key=lambda item: item[1], reverse=True)
+            top_similar_entries = similar_entries[:5]
+
+            # fetch the content of the top similar entries
+            cursor.execute("SELECT content FROM journal_entries WHERE id IN ({seq})".format(
+                seq=','.join(['?']*len(top_similar_entries))
+            ), tuple([entry[0] for entry in top_similar_entries]))
+            similar_contents = cursor.fetchall()
+
+            similar_contents_text = "\n".join([content[0] for content in similar_contents])
+        
+        #################################################### - ####################################################
+
     else:
         user_message = "Generate a new one-sentence writing suggestion. Be inspired by themes or common topics. Do not repeat or rephrase the content of the recent entries."   
     
+
     ### System message construction 
     if request.promptType == 'reflective':
         system_message = reflective_mode
@@ -233,10 +263,13 @@ def generate_prompt(request: PromptRequest):
         system_message = "You are a helpful assistant that provides writing prompts."
 
 
-    ### Append recent entries (if any) - recent entries will be updated with embedding search later (RAG)
+    ### Append recent entries if available, and if no custom prompt is provided
 
     if request.recentEntries:
-        user_message += f'\n\nRecent Entries:\n{request.recentEntries}'
+        if request.customPrompt and summary_embeddings: # custom prompt with RAG 
+            user_message += f'\n\nRecent Entries:\n{similar_contents_text}'
+        else:
+            user_message += f'\n\nRecent Entries:\n{request.recentEntries}'
     else:
         user_message = "Generate a writing prompt."
 
