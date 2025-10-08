@@ -1,20 +1,13 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Bold, Italic, Underline, Wand2, BookPlus, Loader2, Highlighter, CalendarIcon, X } from "lucide-react";
+import { Wand2, BookPlus, Loader2, X, CalendarIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -25,15 +18,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { JournalEntry, PromptType } from "@/lib/types";
-import { Separator } from "../ui/separator";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { Switch } from "../ui/switch";
-import { Label } from "../ui/label";
-import { cn } from "@/lib/utils";
-import { Calendar } from "../ui/calendar";
 import { format } from "date-fns";
 import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Calendar } from "../ui/calendar";
+import { cn } from "@/lib/utils";
 
 // The base URL for your FastAPI backend
 const API_URL = "http://127.0.0.1:8000";
@@ -50,24 +40,12 @@ type JournalEditorProps = {
   onCancel?: () => void;
 };
 
-const highlightColors = [
-    { name: 'green', color: 'hsl(var(--highlight-green))' },
-    { name: 'pink', color: 'hsl(var(--highlight-pink))' },
-    { name: 'blue', color: 'hsl(var(--highlight-blue))' },
-    { name: 'yellow', color: 'hsl(var(--highlight-yellow))' },
-    { name: 'purple', color: 'hsl(var(--highlight-purple))' },
-];
-
-
 export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCancel }: JournalEditorProps) {
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [promptType, setPromptType] = useState<PromptType>('daily');
-  const [customPrompt, setCustomPrompt] = useState("");
-  const [showLines, setShowLines] = useState(false);
   const [entryDate, setEntryDate] = useState<Date>(new Date());
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -85,7 +63,7 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
       setPromptType(entryToEdit.promptType || 'daily');
       setGeneratedPrompt(entryToEdit.prompt || null);
     } else {
-       form.reset({ title: "", content: "" });
+       form.reset({ title: "New Entry", content: "" });
        setEntryDate(new Date());
        setGeneratedPrompt(null);
     }
@@ -105,7 +83,7 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
         }),
       });
       if (!response.ok) throw new Error("Prompt generation failed");
-      const result = await response.json(); // e.g. { "prompt": "..." }
+      const result = await response.json();
 
       if (result.error) {
         toast({
@@ -134,54 +112,11 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
     setGeneratedPrompt(null);
   };
 
-  const applyFormat = (format: 'bold' | 'italic' | 'underline' | `highlight-${string}`) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
-    
-    let newText;
-    let markers;
-
-    if (format.startsWith('highlight-')) {
-        const color = format.split('-')[1];
-        markers = [`<mark class="highlight-${color}">`, `</mark>`];
-        newText = `${markers[0]}${selectedText}${markers[1]}`;
-    } else {
-        markers = {
-            bold: '**',
-            italic: '_',
-            underline: '__'
-        }[format];
-        newText = `${markers}${selectedText}${markers}`;
-    }
-
-    const newContent = `${textarea.value.substring(0, start)}${newText}${textarea.value.substring(end)}`;
-    
-    form.setValue('content', newContent, { shouldValidate: true });
-
-    setTimeout(() => {
-        textarea.focus();
-        if (selectedText) {
-            textarea.setSelectionRange(start, start + newText.length);
-        } else {
-             if (Array.isArray(markers)) {
-                textarea.setSelectionRange(start + markers[0].length, start + markers[0].length);
-            } else {
-                textarea.setSelectionRange(start + markers.length, start + markers.length);
-            }
-        }
-    }, 0);
-  };
-
   async function onSubmit(data: z.infer<typeof formSchema>) {
     setIsSaving(true);
     const currentPromptType = generatedPrompt ? promptType : 'freeform';
     await onSaveEntry(data.content, entryDate, currentPromptType, generatedPrompt ?? undefined, data.title);
     
-    // Don't reset form if editing
     if (!entryToEdit) {
       form.reset();
       setGeneratedPrompt(null);
@@ -196,142 +131,105 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
   }
 
   return (
-    <Card className="bg-card shadow-lg border-border/60">
+    <div className="w-full bg-card p-8 rounded-lg shadow-md">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              {entryToEdit ? 'Edit Entry' : 'New Entry'}
-            </CardTitle>
-            <div className="flex items-center gap-4 w-full">
-              <Input
-                type="text"
-                placeholder="Add your own prompt..."
-                value={customPrompt}
-                onChange={(e) => setCustomPrompt(e.target.value)}
-                className="flex-1"
-              />
-              <div className="flex items-center gap-4">
-                 <Select value={promptType} onValueChange={(value: PromptType) => setPromptType(value)}>
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select a prompt type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="reflective">Reflective</SelectItem>
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="creative">Creative</SelectItem>
-                    </SelectContent>
-                 </Select>
-                <Button type="button" variant="outline" className="border-accent text-accent-foreground hover:bg-accent/80 hover:text-accent-foreground" disabled={isLoadingPrompt} onClick={handleGeneratePrompt}>
-                    {isLoadingPrompt ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                    <span className="ml-2">Get Prompt</span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-             {generatedPrompt && (
-                <div className="relative p-3 mt-2 text-sm italic border-l-4 rounded-r-md bg-muted/50 border-accent text-foreground/80 animate-fade-in">
-                    {generatedPrompt}
-                     <Button type="button" variant="ghost" size="icon" className="absolute top-1/2 right-1 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-destructive" onClick={handleClearPrompt} aria-label="Clear prompt">
-                        <X className="h-4 w-4" />
-                    </Button>
-                </div>
-            )}
-            <div className="flex flex-col sm:flex-row gap-4">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem className="flex-1">
-                      <FormControl>
-                        <Input placeholder="Title (optional)" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <Popover>
-                    <PopoverTrigger asChild>
-                    <Button
-                        variant={"outline"}
-                        className={cn(
-                        "w-full sm:w-[200px] justify-start text-left font-normal",
-                        !entryDate && "text-muted-foreground"
-                        )}
-                    >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {entryDate ? format(entryDate, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                    <Calendar
-                        mode="single"
-                        selected={entryDate}
-                        onSelect={(date) => setEntryDate(date || new Date())}
-                        initialFocus
-                    />
-                    </PopoverContent>
-                </Popover>
-            </div>
-
-            <div className="flex items-center justify-between p-1 rounded-md bg-muted">
-              <div className="flex items-center gap-1">
-                <Button type="button" variant="ghost" size="icon" onClick={() => applyFormat('bold')} aria-label="Bold"><Bold className="w-4 h-4" /></Button>
-                <Button type="button" variant="ghost" size="icon" onClick={() => applyFormat('italic')} aria-label="Italic"><Italic className="w-4 h-4" /></Button>
-                <Button type="button" variant="ghost" size="icon" onClick={() => applyFormat('underline')} aria-label="Underline"><Underline className="w-4 h-4" /></Button>
-                <Popover>
-                    <PopoverTrigger asChild>
-                      <Button type="button" variant="ghost" size="icon" aria-label="Highlight"><Highlighter className="w-4 h-4" /></Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-1">
-                        <div className="flex gap-1">
-                          {highlightColors.map(h => (
-                               <Button
-                                  key={h.name}
-                                  type="button"
-                                  className="w-8 h-8 p-0 rounded-full"
-                                  style={{backgroundColor: h.color}}
-                                  onClick={() => applyFormat(`highlight-${h.name}`)}
-                               />
-                          ))}
-                        </div>
-                    </PopoverContent>
-                </Popover>
-              </div>
-               <div className="flex items-center gap-2 pr-2">
-                  <Label htmlFor="show-lines" className="text-sm text-muted-foreground">Lined</Label>
-                  <Switch id="show-lines" checked={showLines} onCheckedChange={setShowLines} />
-              </div>
-            </div>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Header Section */}
+          <div className="flex flex-col">
             <FormField
               control={form.control}
-              name="content"
+              name="title"
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Textarea
-                      ref={textareaRef}
-                      placeholder="What's on your mind today?"
-                      className={cn("min-h-[240px] resize-y text-base", {"lined-paper": showLines})}
-                      {...field}
-                    />
+                    <Input placeholder="Title (optional)" {...field} className="font-bold border-none focus:ring-0 shadow-none bg-transparent" style={{ fontSize: '1.2rem', padding: 0 }} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </CardContent>
-          <Separator className="my-0"/>
-          <CardFooter className="justify-end pt-6 space-x-2">
+            <Popover>
+                <PopoverTrigger asChild>
+                <Button
+                    variant={"ghost"}
+                    className={cn(
+                    "w-full justify-start text-left font-normal text-muted-foreground p-0 h-auto",
+                    !entryDate && "text-muted-foreground"
+                    )}
+                >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {entryDate ? format(entryDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                <Calendar
+                    mode="single"
+                    selected={entryDate}
+                    onSelect={(date) => setEntryDate(date || new Date())}
+                    initialFocus
+                />
+                </PopoverContent>
+            </Popover>
+          </div>
+
+
+          {/* Top Controls Row */}
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <Input placeholder="Themes (optional)" className="bg-muted rounded-md p-4" />
+            <Select value={promptType} onValueChange={(value: PromptType) => setPromptType(value)}>
+              <SelectTrigger className="w-full sm:w-auto bg-primary text-primary-foreground rounded-md">
+                  <SelectValue placeholder="Select a prompt type" />
+              </SelectTrigger>
+              <SelectContent>
+                  <SelectItem value="reflective">Reflective</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="creative">Creative</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button type="button" variant="secondary" className="w-full sm:w-auto bg-muted text-foreground rounded-md" disabled={isLoadingPrompt} onClick={handleGeneratePrompt}>
+                {isLoadingPrompt ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                <span className="ml-2">Generate Prompt</span>
+            </Button>
+          </div>
+
+          {/* Prompt Box */}
+          {generatedPrompt && (
+            <div className="relative p-4 italic border-l-4 rounded-r-md bg-muted border-primary text-foreground/80 animate-fade-in" style={{ fontSize: '0.875rem' }}>
+                {generatedPrompt}
+                  <Button type="button" variant="ghost" size="icon" className="absolute top-1/2 right-2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-destructive" onClick={handleClearPrompt} aria-label="Clear prompt">
+                    <X className="h-4 w-4" />
+                </Button>
+            </div>
+          )}
+
+          {/* Main Text Area */}
+          <FormField
+            control={form.control}
+            name="content"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Textarea
+                    placeholder="What's on your mind today?"
+                    className="min-h-[300px] resize-y text-base bg-muted rounded-lg border-none p-4 focus:ring-0"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Footer/Save Button */}
+          <footer className="flex justify-end space-x-2">
             {onCancel && <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>}
             <Button type="submit" className="w-full sm:w-auto" variant="default" disabled={isSaving}>
-                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BookPlus className="w-4 h-4 mr-2"/>}
+                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BookPlus className="w-4 h-4 mr-2" />}
                 Save Entry
             </Button>
-          </CardFooter>
+          </footer>
         </form>
       </Form>
-    </Card>
+    </div>
   );
 }
