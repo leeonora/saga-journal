@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { JournalEditor } from "@/components/journal/JournalEditor";
 import { useJournal } from "@/hooks/useJournal";
-import { Menu, PlusCircle } from "lucide-react";
+import { Menu, Plus } from "lucide-react";
 import { JournalSidebar } from "@/components/journal/JournalSidebar";
 import type { JournalEntry } from "@/lib/types";
 import { JournalEntryDisplay } from "@/components/journal/JournalEntryDisplay";
@@ -128,11 +128,6 @@ export default function Home() {
                      </Button>
                   </div>
             </div>
-
-            <Button variant="default" onClick={handleNewEntryClick}>
-                <PlusCircle className="w-4 h-4 mr-2" />
-                New Entry
-            </Button>
             
             <div onClick={() => {
               setIsEditing(false);
@@ -169,14 +164,17 @@ export default function Home() {
               <div className="text-center py-20">
                 <h2 className="text-2xl font-headline">Your saga awaits.</h2>
                 <p className="text-muted-foreground mt-2">Create your first entry to begin.</p>
-                <Button onClick={handleNewEntryClick} className="mt-8">
-                  <PlusCircle className="w-4 h-4 mr-2" />
-                  Create First Entry
-                </Button>
               </div>
            )}
         </main>
       </div>
+      <Button
+        variant="default"
+        onClick={handleNewEntryClick}
+        className="fixed bottom-8 right-8 w-16 h-16 rounded-full shadow-lg"
+      >
+        <Plus className="w-10 h-10" />
+      </Button>
     </div>
   );
 }
