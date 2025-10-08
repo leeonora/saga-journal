@@ -64,6 +64,7 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
   const [isSaving, setIsSaving] = useState(false);
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [promptType, setPromptType] = useState<PromptType>('daily');
+  const [customPrompt, setCustomPrompt] = useState("");
   const [showLines, setShowLines] = useState(false);
   const [entryDate, setEntryDate] = useState<Date>(new Date());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -100,6 +101,7 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
         body: JSON.stringify({
           promptType,
           recentEntries: recentEntries.map(e => e.content).join("\n\n---\n\n"),
+          customPrompt,
         }),
       });
       if (!response.ok) throw new Error("Prompt generation failed");
@@ -201,7 +203,15 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
             <CardTitle className="flex items-center gap-2 text-xl">
               {entryToEdit ? 'Edit Entry' : 'New Entry'}
             </CardTitle>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 w-full">
+              <Input
+                type="text"
+                placeholder="Add your own prompt..."
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                className="flex-1"
+              />
+              <div className="flex items-center gap-4">
                  <Select value={promptType} onValueChange={(value: PromptType) => setPromptType(value)}>
                     <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Select a prompt type" />
@@ -216,6 +226,7 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
                     {isLoadingPrompt ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                     <span className="ml-2">Get Prompt</span>
                 </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">

@@ -210,22 +210,33 @@ def delete_entry(entry_id: str):
 class PromptRequest(BaseModel):
     promptType: str
     recentEntries: str
+    customPrompt: Optional[str] = None
 
 @app.post("/generate-prompt")
 def generate_prompt(request: PromptRequest):
-    system_message = "You are a helpful assistant that provides writing prompts."
     
+    
+    ### User message construction
+    if request.customPrompt:
+        user_message = request.customPrompt
+    else:
+        user_message = "Generate a new one-sentence writing suggestion. Be inspired by themes or common topics. Do not repeat or rephrase the content of the recent entries."   
+    
+    ### System message construction 
     if request.promptType == 'reflective':
         system_message = reflective_mode
     elif request.promptType == 'daily':
         system_message = daily_mode
     elif request.promptType == 'creative':
         system_message = creative_mode
+    else:
+        system_message = "You are a helpful assistant that provides writing prompts."
 
-    user_message = "Generate a new one-sentence writing suggestion. Be inspired by themes or common topics. Do not repeat or rephrase the content of the recent entries."
-    
+
+    ### Append recent entries (if any) - recent entries will be updated with embedding search later (RAG)
+
     if request.recentEntries:
-        user_message += f'\n\nRecent Entries:\n{request.recentEntries}' # appends with recent entries if they exist
+        user_message += f'\n\nRecent Entries:\n{request.recentEntries}'
     else:
         user_message = "Generate a writing prompt."
 
