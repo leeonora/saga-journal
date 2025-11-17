@@ -67,12 +67,9 @@ export function JournalSidebar({
     return filteredEntries.map((entry) => new Date(entry.date));
   }, [filteredEntries]);
 
-  const entriesForSelectedDate = useMemo(() => {
-    if (!selectedDate) return [];
-    return filteredEntries
-        .filter((entry) => isSameDay(new Date(entry.date), selectedDate))
-        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [filteredEntries, selectedDate]);
+  const entriesForSelectedDate = selectedDate ? filteredEntries
+      .filter((entry) => isSameDay(new Date(entry.date), selectedDate))
+      .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()) : [];
   
   const handleDateSelect = (date: Date | undefined) => {
     if (date === undefined) {

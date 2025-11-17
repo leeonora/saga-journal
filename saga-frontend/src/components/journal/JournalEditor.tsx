@@ -23,8 +23,8 @@ import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Book, BookDashed } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { cn } from "@/lib/utils";
 
 // The base URL for your FastAPI backend
@@ -228,9 +228,37 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
 
           {/* Footer/Save Button */}
           <footer className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <Switch id="prompt-generation" checked={useForPromptGeneration} onCheckedChange={setUseForPromptGeneration} />
-              <Label htmlFor="prompt-generation">Use for prompt generation</Label>
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      onClick={() => setUseForPromptGeneration(!useForPromptGeneration)}
+                    >
+                      {useForPromptGeneration ? (
+                        <Book className="h-5 w-5 text-muted-foreground" />
+                      ) : (
+                        <BookDashed className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {useForPromptGeneration
+                        ? "This entry is being used for prompt generation"
+                        : "This entry is not being used for prompt generation"}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <span className="text-sm text-muted-foreground">
+                {useForPromptGeneration
+                  ? "Included in prompt generation"
+                  : "Not included in prompt generation"}
+              </span>
             </div>
             <div className="flex space-x-2">
               {onCancel && <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>}

@@ -14,7 +14,8 @@ import { MarkdownRenderer } from "./MarkdownRenderer";
 import { Separator } from "../ui/separator";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import { Pencil } from "lucide-react";
+import { Book, BookDashed, Pencil } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 type JournalEntryDisplayProps = {
   entry: JournalEntry;
@@ -57,9 +58,29 @@ export function JournalEntryDisplay({ entry, onEdit }: JournalEntryDisplayProps)
             </CardHeader>
             <CardContent>
                 <div className="space-y-2 mb-8">
-                    <Badge variant="outline" className="text-xs font-medium uppercase tracking-wider">
-                        {entry.promptType ? promptTypeLabels[entry.promptType] : 'Freeform'}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs font-medium uppercase tracking-wider">
+                          {entry.promptType ? promptTypeLabels[entry.promptType] : 'Freeform'}
+                      </Badge>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            {entry.use_for_prompt_generation ? (
+                              <Book className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <BookDashed className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              {entry.use_for_prompt_generation
+                                ? "This entry is being used for prompt generation"
+                                : "This entry is not being used for prompt generation"}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     {entry.prompt && (
                         <CardDescription className="pt-2 italic border-l-2 pl-3 border-accent text-foreground/70">
                             {entry.prompt}
