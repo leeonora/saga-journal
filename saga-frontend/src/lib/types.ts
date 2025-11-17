@@ -8,6 +8,7 @@ export type JournalEntry = {
   summary: string;
   prompt?: string;
   promptType?: PromptType;
+  use_for_prompt_generation?: boolean;
 };
 
 export type PromptType = 'reflective' | 'creative' | 'daily' | 'freeform';

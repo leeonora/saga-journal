@@ -23,6 +23,8 @@ import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 // The base URL for your FastAPI backend
@@ -34,7 +36,7 @@ const formSchema = z.object({
 });
 
 type JournalEditorProps = {
-  onSaveEntry: (content: string, date: Date, promptType: PromptType, prompt: string | undefined, title: string | undefined) => Promise<void>;
+  onSaveEntry: (content: string, date: Date, promptType: PromptType, prompt: string | undefined, title: string | undefined, use_for_prompt_generation: boolean) => Promise<void>;
   recentEntries: JournalEntry[];
   entryToEdit?: JournalEntry | null;
   onCancel?: () => void;
@@ -47,6 +49,7 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
   const [promptType, setPromptType] = useState<PromptType>('daily');
   const [entryDate, setEntryDate] = useState<Date>(new Date());
   const [customPrompt, setCustomPrompt] = useState("");
+  const [useForPromptGeneration, setUseForPromptGeneration] = useState(true);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -63,10 +66,12 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
       setEntryDate(new Date(entryToEdit.date));
       setPromptType(entryToEdit.promptType || 'daily');
       setGeneratedPrompt(entryToEdit.prompt || null);
+      setUseForPromptGeneration(entryToEdit.use_for_prompt_generation ?? true);
     } else {
        form.reset({ title: "New Entry", content: "" });
        setEntryDate(new Date());
        setGeneratedPrompt(null);
+       setUseForPromptGeneration(true);
     }
   }, [entryToEdit, form]);
 
@@ -116,7 +121,7 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
   async function onSubmit(data: z.infer<typeof formSchema>) {
     setIsSaving(true);
     const currentPromptType = generatedPrompt ? promptType : 'freeform';
-    await onSaveEntry(data.content, entryDate, currentPromptType, generatedPrompt ?? undefined, data.title);
+    await onSaveEntry(data.content, entryDate, currentPromptType, generatedPrompt ?? undefined, data.title, useForPromptGeneration);
     
     if (!entryToEdit) {
       form.reset();
@@ -222,12 +227,18 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
           />
 
           {/* Footer/Save Button */}
-          <footer className="flex justify-end space-x-2">
-            {onCancel && <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>}
-            <Button type="submit" className="w-full sm:w-auto" variant="default" disabled={isSaving}>
-                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BookPlus className="w-4 h-4 mr-2" />}
-                Save Entry
-            </Button>
+          <footer className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <Switch id="prompt-generation" checked={useForPromptGeneration} onCheckedChange={setUseForPromptGeneration} />
+              <Label htmlFor="prompt-generation">Use for prompt generation</Label>
+            </div>
+            <div className="flex space-x-2">
+              {onCancel && <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>}
+              <Button type="submit" className="w-full sm:w-auto" variant="default" disabled={isSaving}>
+                  {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BookPlus className="w-4 h-4 mr-2" />}
+                  Save Entry
+              </Button>
+            </div>
           </footer>
         </form>
       </Form>

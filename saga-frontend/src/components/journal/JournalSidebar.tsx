@@ -75,6 +75,9 @@ export function JournalSidebar({
   }, [filteredEntries, selectedDate]);
   
   const handleDateSelect = (date: Date | undefined) => {
+    if (date === undefined) {
+      return;
+    }
     setSelectedDate(date);
     const entriesOnDate = filteredEntries
         .filter((entry) => date && isSameDay(new Date(entry.date), date))
@@ -121,26 +124,59 @@ export function JournalSidebar({
       <ScrollArea className="flex-1">
         {view === 'calendar' ? (
           <>
-            <div className="p-4">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleDateSelect}
-                  modifiers={{
-                    hasEntry: entryDates,
-                  }}
-                  modifiersStyles={{
-                    hasEntry: {
-                        fontWeight: 'bold',
-                        textDecoration: 'underline',
-                        textDecorationColor: 'hsl(var(--accent))',
-                        textDecorationThickness: '2px',
-                        textUnderlineOffset: '0.2rem',
-                    },
-                  }}
-                  className="rounded-md"
-                />
+            <div className="
+              p-0 w-full 
+              [&_.rdp]:w-full [&_.rdp]:max-w-none 
+              [&_.rdp-month]:w-full
+              [&_.rdp-caption]:mb-6   /* ← Lifts the month title upward */
+              [&_.rdp-caption_label]:text-lg /* optional: nicer title size */
+            ">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleDateSelect}
+                modifiers={{
+                  hasEntry: entryDates,
+                }}
+                modifiersStyles={{
+                  hasEntry: {
+                    fontWeight: "bold",
+                    textDecoration: "underline",
+                    textDecorationColor: "hsl(var(--accent))",
+                    textDecorationThickness: "2px",
+                    textUnderlineOffset: "0.2rem",
+                  },
+                }}
+                // make the calendar itself fill the sidebar & remove padding
+                className="w-full p-1"
+
+                classNames={{
+                  // make the whole months container full width
+                  months: "w-full",
+
+                  // month block: less padding, smaller vertical gap
+                  month: "w-full space-y-2 px-4 pt-2 pb-3",
+
+                  // caption (month title + arrows) closer to the top
+                  caption: "grid grid-cols-3 items-center px-2",
+                  caption_label: "text-center col-start-2",
+
+
+                  // full-width grid
+                  table: "w-full",
+                  head_row: "grid grid-cols-7",
+                  head_cell: "text-center text-xs text-muted-foreground",
+
+                  // days stretch to fill the width
+                  row: "grid grid-cols-7 gap-y-1",
+                  cell: "flex items-center justify-center",
+
+                  // you can keep your existing day / nav classes if you had them
+                }}
+              />
+
             </div>
+
             <Separator />
             <div className="flex-1 flex flex-col min-h-0">
               <h2 className="p-4 flex items-center gap-2 text-lg font-headline text-foreground/80">

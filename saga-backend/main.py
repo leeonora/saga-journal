@@ -47,6 +47,7 @@ class JournalEntry(BaseModel):
     prompt: Optional[str] = None
     promptType: Optional[str] = None
     summaryEmbedding: Optional[bytes] = None  # Store embedding as bytes
+    use_for_prompt_generation: Optional[bool] = True
 
 
 # Create connection and cursor
@@ -63,7 +64,8 @@ CREATE TABLE IF NOT EXISTS journal_entries (
     summary TEXT DEFAULT NULL,
     prompt TEXT DEFAULT NULL,
     promptType TEXT DEFAULT NULL,
-    summaryEmbedding BLOB
+    summaryEmbedding BLOB,
+    use_for_prompt_generation BOOLEAN DEFAULT TRUE
 );
 """)
 conn.commit() # save changes
@@ -107,8 +109,8 @@ def add_entry(entry: JournalEntry):
 
     
     # Insert the new entry into the database
-    cursor.execute("INSERT INTO journal_entries (id, title, content, date, summary, prompt, promptType, summaryEmbedding) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
-                   (entry.id, entry.title, entry.content, entry.date, entry.summary, entry.prompt, entry.promptType, entry.summaryEmbedding))
+    cursor.execute("INSERT INTO journal_entries (id, title, content, date, summary, prompt, promptType, summaryEmbedding, use_for_prompt_generation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+                   (entry.id, entry.title, entry.content, entry.date, entry.summary, entry.prompt, entry.promptType, entry.summaryEmbedding, entry.use_for_prompt_generation))
     conn.commit()
 
     # Return entry without embedding (internal only)
@@ -120,9 +122,9 @@ def add_entry(entry: JournalEntry):
 # Fetch all entries from the .db database
 @app.get("/journal/")
 def get_entries():
-    cursor.execute("SELECT id, title, content, date, summary, prompt, promptType FROM journal_entries")
+    cursor.execute("SELECT id, title, content, date, summary, prompt, promptType, use_for_prompt_generation FROM journal_entries")
     rows = cursor.fetchall()
-    entries = [{"id": row[0], "title": row[1], "content": row[2], "date": row[3], "summary": row[4], "prompt": row[5], "promptType": row[6]} for row in rows]
+    entries = [{"id": row[0], "title": row[1], "content": row[2], "date": row[3], "summary": row[4], "prompt": row[5], "promptType": row[6], "use_for_prompt_generation": row[7]} for row in rows]
     conn.commit()
     return {"entries": entries}
 
@@ -165,7 +167,7 @@ def update_entry(entry_id: str, updated_entry: JournalEntry):
     cursor.execute(
         """
         UPDATE journal_entries
-        SET title = ?, content = ?, summary = ?, date = ?, prompt = ?, promptType = ?, summaryEmbedding = ?
+        SET title = ?, content = ?, summary = ?, date = ?, prompt = ?, promptType = ?, summaryEmbedding = ?, use_for_prompt_generation = ?
         WHERE id = ?
         """,
         (updated_entry.title,
@@ -175,6 +177,7 @@ def update_entry(entry_id: str, updated_entry: JournalEntry):
          updated_entry.prompt,
          updated_entry.promptType,
          new_embedding,
+         updated_entry.use_for_prompt_generation,
          entry_id)
     )
     conn.commit()
@@ -189,7 +192,8 @@ def update_entry(entry_id: str, updated_entry: JournalEntry):
         "summary": new_summary,
         "date": updated_entry.date if updated_entry.date else datetime.now().isoformat(),
         "prompt": updated_entry.prompt,
-        "promptType": updated_entry.promptType
+        "promptType": updated_entry.promptType,
+        "use_for_prompt_generation": updated_entry.use_for_prompt_generation
     }
 
     return {"entry": updated_entry_dict}
@@ -225,7 +229,7 @@ def generate_prompt(request: PromptRequest):
         query_embedding = get_embedding(user_message) # get embedding for the custom prompt
 
         # fetch all journal entry embeddings from db
-        cursor.execute("SELECT id, summaryEmbedding FROM journal_entries")
+        cursor.execute("SELECT id, summaryEmbedding FROM journal_entries WHERE use_for_prompt_generation = TRUE")
         rows = cursor.fetchall()
 
         entry_ids = [row[0] for row in rows]

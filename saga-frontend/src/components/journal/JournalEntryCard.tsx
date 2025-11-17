@@ -10,7 +10,7 @@ import {
 import type { JournalEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Trash2 } from "lucide-react";
+import { Trash2, EyeOff } from "lucide-react";
 import { Button } from "../ui/button";
 import {
   AlertDialog,
@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "../ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 type JournalEntryCardProps = {
   entry: JournalEntry;
@@ -57,6 +58,18 @@ export function JournalEntryCard({ entry, onSelect, onDelete, isSelected }: Jour
                     {entry.title}
                   </CardTitle>
                   <div className="flex items-center gap-2 pt-0.5">
+                    {!entry.use_for_prompt_generation && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>This entry is not being used for prompt generation</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                     <Badge variant="outline" className="text-[10px] capitalize">
                         {entry.promptType ? promptTypeLabels[entry.promptType] : 'Freeform'}
                     </Badge>

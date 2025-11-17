@@ -22,17 +22,19 @@ export default function Home() {
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarView, setSidebarView] = useState<SidebarView>("calendar");
+  const [initialLoad, setInitialLoad] = useState(true);
   
   // Set initial entry on load
   useEffect(() => {
-    if (isLoaded && entries.length > 0 && selectedEntry === null && !isEditing) {
+    if (isLoaded && entries.length > 0 && initialLoad) {
       setSelectedEntry(entries[0]);
+      setInitialLoad(false);
     }
      if (isLoaded && entries.length === 0) {
       setIsEditing(true); // If no entries, start with the editor open
       setSelectedEntry(null);
     }
-  }, [isLoaded, entries, selectedEntry, isEditing]);
+  }, [isLoaded, entries, initialLoad]);
 
   const handleSelectEntry = (entry: JournalEntry | null) => {
     setSelectedEntry(entry);
@@ -65,16 +67,16 @@ export default function Home() {
   };
 
 
-  const handleSave = async (content: string, date: Date, promptType: any, prompt: any, title: any) => {
+  const handleSave = async (content: string, date: Date, promptType: any, prompt: any, title: any, use_for_prompt_generation: boolean) => {
     if (isEditing && selectedEntry) {
         // Update existing entry
-        const updated = await updateEntry(selectedEntry.id, content, date, promptType, prompt, title);
+        const updated = await updateEntry(selectedEntry.id, content, date, promptType, prompt, title, use_for_prompt_generation);
         if (updated) {
             setSelectedEntry(updated);
         }
     } else {
         // Add new entry
-        const newEntry = await addEntry(content, date, promptType, prompt, title);
+        const newEntry = await addEntry(content, date, promptType, prompt, title, use_for_prompt_generation);
         if (newEntry) {
           setSelectedEntry(newEntry);
         }
@@ -160,7 +162,14 @@ export default function Home() {
              <JournalEntryDisplay entry={selectedEntry} onEdit={handleEditClick} />
           )}
 
-           {isLoaded && !isEditing && !selectedEntry && (
+           {isLoaded && !isEditing && !selectedEntry && entries.length > 0 && (
+              <div className="text-center py-20">
+                <h2 className="text-2xl font-headline">No entries on this date.</h2>
+                <p className="text-muted-foreground mt-2">Select a date with an entry or create a new one.</p>
+              </div>
+           )}
+
+           {isLoaded && !isEditing && !selectedEntry && entries.length === 0 && (
               <div className="text-center py-20">
                 <h2 className="text-2xl font-headline">Your saga awaits.</h2>
                 <p className="text-muted-foreground mt-2">Create your first entry to begin.</p>
