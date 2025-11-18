@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { SagaLogo } from "@/components/common/SagaLogo";
+import { LoadingScreen } from "@/components/common/LoadingScreen";
 
 export type SidebarView = "calendar" | "list";
 
@@ -142,7 +143,7 @@ export default function Home() {
         </header>
 
         <main className="w-full max-w-3xl space-y-12">
-          {!isLoaded && <p>Loading your saga...</p>}
+          {!isLoaded && <LoadingScreen />}
           
           {isLoaded && isEditing && (
             <JournalEditor

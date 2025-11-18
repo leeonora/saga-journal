@@ -213,84 +213,94 @@ def delete_entry(entry_id: str):
 
 class PromptRequest(BaseModel):
     promptType: str
-    recentEntries: str
+    recentEntries: List[JournalEntry]
     customPrompt: Optional[str] = None
 
 @app.post("/generate-prompt")
 def generate_prompt(request: PromptRequest):
-    
-    
-    ### User message construction
-    if request.customPrompt:
-        user_message = request.customPrompt
-
-        #################  RAG - retrieve similar entries based on embedding similarity #########################
-        
-        query_embedding = get_embedding(user_message) # get embedding for the custom prompt
-
-        # fetch all journal entry embeddings from db
-        cursor.execute("SELECT id, summaryEmbedding FROM journal_entries WHERE use_for_prompt_generation = TRUE")
-        rows = cursor.fetchall()
-
-        entry_ids = [row[0] for row in rows]
-        summary_embeddings = [embedding_from_blob(row[1]) for row in rows if row[1] is not None]
-
-        if summary_embeddings:
-            similarities = cosine_similarity(query_embedding.reshape(1, -1), summary_embeddings)[0] # Edit here for other similarity measures
-
-            # Get top 5 most similar entries
-            similar_entries = sorted(zip(entry_ids, similarities), key=lambda item: item[1], reverse=True)
-            top_similar_entries = similar_entries[:5]
-
-            # fetch the content of the top similar entries
-            cursor.execute("SELECT content FROM journal_entries WHERE id IN ({seq})".format(
-                seq=','.join(['?']*len(top_similar_entries))
-            ), tuple([entry[0] for entry in top_similar_entries]))
-            similar_contents = cursor.fetchall()
-
-            similar_contents_text = "\n".join([content[0] for content in similar_contents])
-        
-        #################################################### - ####################################################
-
-    else:
-        user_message = "Generate a new one-sentence writing suggestion. Be inspired by themes or common topics. Do not repeat or rephrase the content of the recent entries."   
-    
-
-    ### System message construction 
-    if request.promptType == 'reflective':
+    # ----- SYSTEM MESSAGE -----
+    if request.promptType == "reflective":
         system_message = reflective_mode
-    elif request.promptType == 'daily':
+    elif request.promptType == "daily":
         system_message = daily_mode
-    elif request.promptType == 'creative':
+    elif request.promptType == "creative":
         system_message = creative_mode
     else:
         system_message = "You are a helpful assistant that provides writing prompts."
 
-
-    ### Append recent entries if available, and if no custom prompt is provided
-
-    if request.recentEntries:
-        if request.customPrompt and summary_embeddings: # custom prompt with RAG 
-            user_message += f'\n\nRecent Entries:\n{similar_contents_text}'
-        else:
-            user_message += f'\n\nRecent Entries:\n{request.recentEntries}'
+    # ----- USER MESSAGE BASE -----
+    if request.customPrompt:
+        user_message = request.customPrompt
     else:
-        user_message = "Generate a writing prompt."
+        user_message = (
+            "Generate a new one-sentence writing suggestion. "
+            "Be inspired by themes or common topics. "
+            "Do not repeat or rephrase the content of the recent entries."
+        )
 
+    # ----- OPTIONAL RAG FOR CUSTOM PROMPT -----
+    similar_contents_text = ""
+    if request.customPrompt:
+        query_embedding = get_embedding(user_message)
+
+        cursor.execute("""
+            SELECT id, summaryEmbedding
+            FROM journal_entries
+            WHERE use_for_prompt_generation = 1
+        """)
+
+        rows = cursor.fetchall()
+
+        # keep ids and embeddings aligned (only rows with an embedding)
+        entries_with_emb = [(row[0], row[1]) for row in rows if row[1] is not None]
+        entry_ids = [r[0] for r in entries_with_emb]
+        summary_embeddings = [embedding_from_blob(r[1]) for r in entries_with_emb]
+
+        if summary_embeddings:
+            similarities = cosine_similarity(
+                query_embedding.reshape(1, -1), summary_embeddings
+            )[0]
+            similar_entries = sorted(
+                zip(entry_ids, similarities), key=lambda item: item[1], reverse=True
+            )
+            top_similar_entries = similar_entries[:5]
+
+            cursor.execute(
+                "SELECT content FROM journal_entries WHERE id IN ({seq})".format(
+                    seq=",".join(["?"] * len(top_similar_entries))
+                ),
+                tuple([entry[0] for entry in top_similar_entries]),
+            )
+            similar_contents = cursor.fetchall()
+            similar_contents_text = "\n".join([content[0] for content in similar_contents])
+
+    # ----- ATTACH CONTEXT FROM ENTRIES -----
+    if request.recentEntries:
+        recent_entries_text = "\n\n".join(e.content for e in request.recentEntries)
+
+        if request.customPrompt and similar_contents_text:
+            # use RAG results instead of raw recent entries
+            user_message += f"\n\nRecent entries (similar to your request):\n{similar_contents_text}"
+        else:
+            user_message += f"\n\nRecent entries:\n{recent_entries_text}"
+    else:
+        # if absolutely no context, you can leave user_message as-is or simplify:
+        if not request.customPrompt:
+            user_message = "Generate a writing prompt."
+
+    # ----- CALL OPENAI -----
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": system_message},
-                {"role": "user", "content": user_message}
+                {"role": "user", "content": user_message},
             ],
-            max_tokens=60
+            max_tokens=60,
         )
         prompt = response.choices[0].message.content.strip()
         return {"prompt": prompt}
-    
+
     except Exception as e:
         print(f"Error calling OpenAI API for prompt generation: {e}")
         raise HTTPException(status_code=500, detail="Could not generate prompt.")
-    
-   

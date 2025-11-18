@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Wand2, BookPlus, Loader2, X, CalendarIcon } from "lucide-react";
+import { Wand2, BookPlus, Loader2, X, CalendarIcon, Type } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -84,7 +84,7 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           promptType,
-          recentEntries: recentEntries.map(e => e.content).join("\n\n---\n\n"),
+          recentEntries: recentEntries,
           customPrompt,
         }),
       });
@@ -148,7 +148,10 @@ export function JournalEditor({ onSaveEntry, recentEntries, entryToEdit, onCance
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input placeholder="Title (optional)" {...field} className="font-bold border-none focus:ring-0 shadow-none bg-transparent" style={{ fontSize: '1.2rem', padding: 0 }} />
+                    <div className="flex items-center gap-2">
+                      <Type className="h-4 w-4 text-muted-foreground" />
+                      <Input placeholder="Title (optional)" {...field} className="font-bold border-none focus:ring-0 shadow-none bg-transparent text-3xl p-0" />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
