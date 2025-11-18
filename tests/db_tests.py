@@ -3,6 +3,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from main import app
 
+
 class DBTests(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
