@@ -1,3 +1,4 @@
+from urllib import request
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
@@ -276,17 +277,22 @@ def generate_prompt(request: PromptRequest):
 
     # ----- ATTACH CONTEXT FROM ENTRIES -----
     if request.recentEntries:
-        recent_entries_text = "\n\n".join(e.content for e in request.recentEntries)
+        # Only include entries marked for prompt generation
+        filtered_recent_entries = [
+            e for e in request.recentEntries 
+            if e.use_for_prompt_generation is not False  # treat None/True as allowed
+        ]
 
-        if request.customPrompt and similar_contents_text:
-            # use RAG results instead of raw recent entries
-            user_message += f"\n\nRecent entries (similar to your request):\n{similar_contents_text}"
-        else:
-            user_message += f"\n\nRecent entries:\n{recent_entries_text}"
-    else:
-        # if absolutely no context, you can leave user_message as-is or simplify:
-        if not request.customPrompt:
-            user_message = "Generate a writing prompt."
+        if filtered_recent_entries:
+            recent_entries_text = "\n\n".join(e.content for e in filtered_recent_entries)
+
+            if request.customPrompt and similar_contents_text:
+                user_message += (
+                    f"\n\nRecent entries (similar to your request):\n{similar_contents_text}"
+                )
+            else:
+                user_message += f"\n\nRecent entries:\n{recent_entries_text}"
+
 
     # ----- CALL OPENAI -----
     try:
