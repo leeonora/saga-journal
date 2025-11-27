@@ -11,28 +11,32 @@ export function useJournal() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  const fetchEntries = useCallback(async (searchTerm?: string) => {
+    try {
+      const url = searchTerm ? `${API_URL}/journal/?search=${encodeURIComponent(searchTerm)}` : `${API_URL}/journal/`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch entries');
+      }
+      const data = await response.json();
+      const sortedEntries = (data.entries || []).sort((a: JournalEntry, b: JournalEntry) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setEntries(sortedEntries);
+    } catch (error) {
+      console.error("Error fetching entries from backend:", error);
+      setEntries([]);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
+
   // Fetch all entries from the backend when the component mounts
   useEffect(() => {
-    const fetchEntries = async () => {
-      try {
-        const response = await fetch(`${API_URL}/journal/`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch entries');
-        }
-        const data = await response.json();
-        // Assuming your backend returns { "entries": [...] }
-        const sortedEntries = (data.entries || []).sort((a: JournalEntry, b: JournalEntry) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setEntries(sortedEntries);
-      } catch (error) {
-        console.error("Error fetching entries from backend:", error);
-        setEntries([]); // Set to empty array on error
-      } finally {
-        setIsLoaded(true);
-      }
-    };
-
     fetchEntries();
-  }, []);
+  }, [fetchEntries]);
+
+  const searchEntries = useCallback(async (searchTerm: string) => {
+    await fetchEntries(searchTerm);
+  }, [fetchEntries]);
 
   const addEntry = useCallback(async (content: string, date: Date, promptType: PromptType, prompt: string | undefined, title: string | undefined, use_for_prompt_generation: boolean): Promise<JournalEntry | undefined> => {
     if (!content.trim()) return;
@@ -179,5 +183,5 @@ export function useJournal() {
   }, []);
 
 
-  return { entries, addEntry, updateEntry, deleteEntry, isLoaded };
+  return { entries, addEntry, updateEntry, deleteEntry, isLoaded, searchEntries };
 }

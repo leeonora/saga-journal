@@ -122,8 +122,11 @@ def add_entry(entry: JournalEntry):
 
 # Fetch all entries from the .db database
 @app.get("/journal/")
-def get_entries():
-    cursor.execute("SELECT id, title, content, date, summary, prompt, promptType, use_for_prompt_generation FROM journal_entries")
+def get_entries(search: Optional[str] = None):
+    if search:
+        cursor.execute("SELECT id, title, content, date, summary, prompt, promptType, use_for_prompt_generation FROM journal_entries WHERE title LIKE ? OR content LIKE ?", (f"%{search}%", f"%{search}%"))
+    else:
+        cursor.execute("SELECT id, title, content, date, summary, prompt, promptType, use_for_prompt_generation FROM journal_entries")
     rows = cursor.fetchall()
     entries = [{"id": row[0], "title": row[1], "content": row[2], "date": row[3], "summary": row[4], "prompt": row[5], "promptType": row[6], "use_for_prompt_generation": row[7]} for row in rows]
     conn.commit()

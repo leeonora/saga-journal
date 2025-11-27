@@ -4,7 +4,7 @@ import Image from 'next/image';
 
 export function LoadingScreen() {
   return (
-    <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-[#fcfcff] z-50 flex items-center justify-center">
       <div className="flex flex-col items-center">
         {/* 
           TODO: Replace this with the actual path to your loading GIF.

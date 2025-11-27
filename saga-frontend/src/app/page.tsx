@@ -17,7 +17,7 @@ import { LoadingScreen } from "@/components/common/LoadingScreen";
 export type SidebarView = "calendar" | "list";
 
 export default function Home() {
-  const { entries, addEntry, updateEntry, isLoaded, deleteEntry } = useJournal();
+  const { entries, addEntry, updateEntry, isLoaded, deleteEntry, searchEntries } = useJournal();
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
@@ -85,7 +85,7 @@ export default function Home() {
     setIsEditing(false);
   };
 
-  const SidebarContent = () => (
+  const sidebar = (
     <JournalSidebar
       entries={entries}
       selectedEntry={selectedEntry}
@@ -94,6 +94,7 @@ export default function Home() {
       onCreateNew={handleNewEntryClick}
       view={sidebarView}
       onViewChange={setSidebarView}
+      onSearch={searchEntries}
     />
   );
 
@@ -106,7 +107,7 @@ export default function Home() {
         )}
         style={{transition: 'width 300ms cubic-bezier(0.2, 0, 0, 1) 0s'}}
       >
-        {sidebarOpen && <SidebarContent />}
+        {sidebarOpen && sidebar}
       </aside>
 
       {/* Main Content */}
@@ -121,7 +122,7 @@ export default function Home() {
                         </Button>
                       </SheetTrigger>
                       <SheetContent side="left" className="w-80 p-0">
-                        <SidebarContent />
+                        {sidebar}
                       </SheetContent>
                     </Sheet>
                   </div>

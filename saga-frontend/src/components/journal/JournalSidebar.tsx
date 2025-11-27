@@ -5,13 +5,14 @@ import { useState, useMemo, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { JournalList } from "./JournalList";
 import type { JournalEntry } from "@/lib/types";
-import { BookCopy, Calendar as CalendarIcon } from "lucide-react";
+import { BookCopy, Calendar as CalendarIcon, Search } from "lucide-react";
 import { Separator } from "../ui/separator";
 import { ScrollArea } from "../ui/scroll-area";
 import { isSameDay, format, parseISO } from "date-fns";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { JournalListGrouped } from "./JournalListGrouped";
 import type { SidebarView } from "@/app/page";
+import { Input } from "@/components/ui/input";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
@@ -23,6 +24,7 @@ type JournalSidebarProps = {
   onCreateNew: () => void;
   view: SidebarView;
   onViewChange: (view: SidebarView) => void;
+  onSearch: (searchTerm: string) => void;
 };
 
 const promptTypeLabels: { [key in NonNullable<JournalEntry['promptType']>] : string } = {
@@ -40,11 +42,20 @@ export function JournalSidebar({
   onCreateNew,
   view,
   onViewChange,
+  onSearch,
 }: JournalSidebarProps) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     selectedEntry && selectedEntry.date ? parseISO(selectedEntry.date) : new Date()
   );
   const [filterPromptType, setFilterPromptType] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      onSearch(searchTerm);
+    }, 500); // Debounce search
+    return () => clearTimeout(handler);
+  }, [searchTerm, onSearch]);
 
   useEffect(() => {
     if (selectedEntry && selectedEntry.date) {
@@ -53,7 +64,7 @@ export function JournalSidebar({
         setSelectedDate(entryDate);
       }
     }
-  }, [selectedEntry, selectedDate]);
+  }, [selectedEntry]);
 
 
   const filteredEntries = useMemo(() => {
@@ -102,6 +113,15 @@ export function JournalSidebar({
                 <TabsTrigger value="list"><BookCopy className="w-4 h-4" /></TabsTrigger>
               </TabsList>
             </Tabs>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search entries..."
+            className="pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
         <Select value={filterPromptType} onValueChange={(value: string) => setFilterPromptType(value)}>
             <SelectTrigger className="w-full">
