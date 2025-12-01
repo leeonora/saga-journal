@@ -7,6 +7,8 @@ from datetime import datetime
 import numpy as np 
 from sentence_transformers import SentenceTransformer
 
+# cross encoder 
+from sentence_transformers import CrossEncoder
 
 # Load pre-trained model
 model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -25,6 +27,20 @@ def embedding_from_blob(blob):
     return np.frombuffer(blob, dtype=np.float32)  
 
 # -----------------------------------------------------------
+
+# For testing run-time
+
+import time
+
+def timed(fn):
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        result = fn(*args, **kwargs)
+        end = time.perf_counter()
+        print(f"[RUNTIME] {fn.__name__}: {(end - start):.4f} seconds\n")
+        return result
+    return wrapper
+
 
 
 
@@ -87,6 +103,7 @@ query_embedding = get_embedding(mock_query).reshape(1, -1)
 # summary embeddings
 summary_embeddings = np.array([get_embedding(summary) for summary in mock_summaries])
 
+@timed
 def test_cosine_similarity_benchmark():
 
     # query embedding
@@ -107,55 +124,56 @@ def test_cosine_similarity_benchmark():
     top_k_labels = ranked_labels[:k]
     precision_at_k = sum(top_k_labels) / k
 
-    print("Ranked indices:", ranked_indices)
+    # print("Ranked indices:", ranked_indices)
     # print the mock summary corresponding to the top ranked index
-    print("Top ranked summary:", mock_summaries[ranked_indices[0]])
+    # print("Top ranked summary:", mock_summaries[ranked_indices[0]])
 
-    print("\nTop 5 ranked summaries:")
-    for i in ranked_indices[:5]:
-        print(f"Index {i}: label={labels[i]}, score={similarities[0][i]:.4f}")
-        print(f" → {mock_summaries[i]}\n")
+    #print("\nTop 5 ranked summaries:")
+    #for i in ranked_indices[:5]:
+    #    print(f"Index {i}: label={labels[i]}, score={similarities[0][i]:.4f}")
+    #    print(f" → {mock_summaries[i]}\n")
 
 
-    print("Ranked labels:", ranked_labels)
-    print(f"Precision at {k}: {precision_at_k}")
+    #print("Ranked labels:", ranked_labels)
+    #print(f"Precision at {k}: {precision_at_k}")
     return similarities
 
-def test_manhattan_distance_benchmark():
+# def test_manhattan_distance_benchmark():
 
-    # query embedding
-    #query_embedding = get_embedding(mock_query).reshape(1, -1)
+#     # query embedding
+#     #query_embedding = get_embedding(mock_query).reshape(1, -1)
     
-    # summary embeddings
-    #summary_embeddings = np.array([get_embedding(summary) for summary in mock_summaries])
+#     # summary embeddings
+#     #summary_embeddings = np.array([get_embedding(summary) for summary in mock_summaries])
 
-    # compute Manhattan (L1) distances
-    distances = cdist(query_embedding, summary_embeddings, metric='cityblock')[0]
+#     # compute Manhattan (L1) distances
+#     distances = cdist(query_embedding, summary_embeddings, metric='cityblock')[0]
 
-    # convert distances to similarities (invert — smaller distance = higher similarity)
-    similarities = 1 / (1 + distances)
+#     # convert distances to similarities (invert — smaller distance = higher similarity)
+#     similarities = 1 / (1 + distances)
 
-    # rank summaries by similarity
-    ranked_indices = np.argsort(similarities)[::-1]  # descending
-    ranked_labels = [labels[i] for i in ranked_indices]
+#     # rank summaries by similarity
+#     ranked_indices = np.argsort(similarities)[::-1]  # descending
+#     ranked_labels = [labels[i] for i in ranked_indices]
 
-    # Calculate precision at k (k=5)
-    k = 5
-    top_k_labels = ranked_labels[:k]
-    precision_at_k = sum(top_k_labels) / k
+#     # Calculate precision at k (k=5)
+#     k = 5
+#     top_k_labels = ranked_labels[:k]
+#     precision_at_k = sum(top_k_labels) / k
 
-    print("Ranked indices:", ranked_indices)
-    print("Top ranked summary:", mock_summaries[ranked_indices[0]])
+#     print("Ranked indices:", ranked_indices)
+#     print("Top ranked summary:", mock_summaries[ranked_indices[0]])
 
-    print("\nTop 5 ranked summaries:")
-    for i in ranked_indices[:5]:
-        print(f"Index {i}: label={labels[i]}, score={similarities[i]:.4f}")
-        print(f" → {mock_summaries[i]}\n")
+#     print("\nTop 5 ranked summaries:")
+#     for i in ranked_indices[:5]:
+#         print(f"Index {i}: label={labels[i]}, score={similarities[i]:.4f}")
+#         print(f" → {mock_summaries[i]}\n")
 
-    print("Ranked labels:", ranked_labels)
-    print(f"Precision at {k}: {precision_at_k:.3f}")
+#     print("Ranked labels:", ranked_labels)
+#     print(f"Precision at {k}: {precision_at_k:.3f}")
 
 ## Hybrid search 
+
 
 def calc_datetime_score(entry_date_str):
     """ Calculate a recency score based on the date string in ISO format. """
@@ -179,7 +197,7 @@ def hybrid_similarity(semantic_scores, datetime_scores, alpha=0.7):
 
     return alpha * semantic_scores + (1 - alpha) * datetime_scores_norm
  
-
+@timed
 def test_hybrid_search_with_datetime_benchmark(semantic_scores = test_cosine_similarity_benchmark()):
 
     
@@ -189,7 +207,8 @@ def test_hybrid_search_with_datetime_benchmark(semantic_scores = test_cosine_sim
         "2025-04-15", "2025-03-01", "2025-02-20", "2025-01-10", "2024-12-25"
     ]
 
-    semantic_scores = np.array(semantic_scores).flatten()
+    similarities = cosine_similarity(query_embedding, summary_embeddings)
+    semantic_scores = np.array(similarities).flatten()
 
     datetime_scores = np.array([calc_datetime_score(date_str) for date_str in summary_dates])
 
@@ -203,24 +222,69 @@ def test_hybrid_search_with_datetime_benchmark(semantic_scores = test_cosine_sim
     top_k_labels = ranked_labels[:k]
     precision_at_k = sum(top_k_labels) / k
 
-    print("HYBRID SEARCH WITH DATETIME SCORES\n")
-    print("Ranked indices:", ranked_indices)
-    print("Top ranked summary:", mock_summaries[ranked_indices[0]])
+    #print("HYBRID SEARCH WITH DATETIME SCORES\n")
+    #print("Ranked indices:", ranked_indices)
+    #print("Top ranked summary:", mock_summaries[ranked_indices[0]])
 
-    print("\nTop 5 ranked summaries with datetime hybrid:")
-    for i in ranked_indices[:5]:
-        print(f"Index {i}: label={labels[i]}, score={hybrid_scores[i]:.4f}")
-        print(f" → {mock_summaries[i]}\n")
+    #print("\nTop 5 ranked summaries with datetime hybrid:")
+    #for i in ranked_indices[:5]:
+    #    print(f"Index {i}: label={labels[i]}, score={hybrid_scores[i]:.4f}")
+    #    print(f" → {mock_summaries[i]}\n")
 
-    print(f"Precision at {k}: {precision_at_k:.3f}")
+    # print(f"Precision at {k}: {precision_at_k:.3f}")
+
+model_cross = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+#https://sbert.net/docs/cross_encoder/usage/usage.html
+@timed
+def test_crossencoder_hybrid_search_benchmark():
+
+    # compute similarities
+    similarities = cosine_similarity(query_embedding, summary_embeddings)
+
+    # rank summaries by similarity
+    ranked_indices = np.argsort(similarities[0])[::-1]  # descending order
+    ranked_labels = [labels[i] for i in ranked_indices]
+
+    # Calculate precision at k (k=10)
+    k = 10
+    top_k_labels = ranked_labels[:k]
+    precision_at_k = sum(top_k_labels) / k
+
+    # print("Ranked indices:", ranked_indices)
+    # print the mock summary corresponding to the top ranked index0.8
+    # print("Top ranked summary:", mock_summaries[ranked_indices[0]])
+
+    # Now use cross-encoder to re-rank top 10
+    top_indices = ranked_indices[:k]
+    top_summaries = [mock_summaries[i] for i in top_indices]
+
+    ranks = model_cross.rank(mock_query, top_summaries)
+    # print("\nTop 10 ranked summaries after Cross-Encoder re-ranking:")
+
+    reranked_indices = [top_indices[r['corpus_id']] for r in ranks]
+    reranked_labels = [labels[i] for i in reranked_indices]
+    precision_at_k = sum(reranked_labels[:5]) / 5
+
+    # print("\nTop 10 ranked summaries after Cross-Encoder re-ranking:\n")
+    
+    #for r in ranks:
+    #    idx = top_indices[r['corpus_id']]
+    #    print(f"{r['score']:.4f}\t label={labels[idx]}\t → {mock_summaries[idx]}")
+    #
+    #print(f"\nPrecision@{k} after CrossEncoder reranking: {precision_at_k:.3f}")    
 
 
+
+# Gives better precision at k than pure cosine similarity !! 
+# But higher computational cost due to cross-encoder
+# Gives 
 
 
 if __name__ == "__main__":
-    #test_cosine_similarity_benchmark()
+    test_cosine_similarity_benchmark()
     #test_manhattan_distance_benchmark()
     test_hybrid_search_with_datetime_benchmark()
+    test_crossencoder_hybrid_search_benchmark()
 
     
 
