@@ -10,19 +10,19 @@ import uuid
 from datetime import datetime
 import sqlite3
 from sklearn.metrics.pairwise import cosine_similarity
-# Import from other folders
-from services.sbert.embeddings_sbert import get_embedding, embedding_to_blob, embedding_from_blob  # Import the embedding function
+
+# import from other folders
+from services.sbert.embeddings_sbert import get_embedding, embedding_to_blob, embedding_from_blob  # the embedding function for db
 from services.openAI.system_messages import reflective_mode, daily_mode, creative_mode
 
-# Load environment variables from .env file
+# load env variables
 load_dotenv()
 
-# Initialize the OpenAI client
+# init openai client
 client = openai.OpenAI()
 
+# init FastAPI app
 app = FastAPI()
-
-# Allow locally hosted api to connect
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -38,7 +38,7 @@ app.add_middleware(
     ],
 )
 
-# Pydantic model for journal entry, ensure correct data types
+# ensure correct data types w. pydantic
 class JournalEntry(BaseModel):
     id: Optional[str] = None
     title: str
@@ -51,11 +51,11 @@ class JournalEntry(BaseModel):
     use_for_prompt_generation: Optional[bool] = True
 
 
-# Create connection and cursor
+# create connection and cursor
 conn = sqlite3.connect('journal.db', check_same_thread=False) # the connection between the app and the db
 cursor = conn.cursor() # the object that executes SQL commands (translator)
 
-# Create table if it doesn't exist (only runs once, even when you restart the app)
+# create table if it doesn't exist (only runs once, even when restarting the app)
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS journal_entries (
     id TEXT PRIMARY KEY,
@@ -73,12 +73,12 @@ conn.commit() # save changes
 
 
 
-@app.get("/")
+@app.get("/") # home route
 def home():
     return {"message": "Welcome to Journal API"}
 
 
-# Add new entry to the .db database
+# POST: add new entry to the .db database
 @app.post("/journal/")
 def add_entry(entry: JournalEntry):
     entry.id = str(uuid.uuid4())
@@ -99,7 +99,7 @@ def add_entry(entry: JournalEntry):
         summary_text = response.choices[0].message.content.strip()
         entry.summary = summary_text
 
-        # Generate embedding for the summary
+        # generate embedding for the summary
         embedding = get_embedding(entry.summary)
         #entry.summaryEmbedding = embedding.tobytes() # sqllite does not support numpy.ndarray. Convert to bytes for storage
         entry.summaryEmbedding = embedding_to_blob(embedding) # alternative way to convert to blob
@@ -109,18 +109,18 @@ def add_entry(entry: JournalEntry):
         entry.summary = "Could not generate summary."
 
     
-    # Insert the new entry into the database
+    # insert the new entry into the database
     cursor.execute("INSERT INTO journal_entries (id, title, content, date, summary, prompt, promptType, summaryEmbedding, use_for_prompt_generation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
                    (entry.id, entry.title, entry.content, entry.date, entry.summary, entry.prompt, entry.promptType, entry.summaryEmbedding, entry.use_for_prompt_generation))
     conn.commit()
 
-    # Return entry without embedding (internal only)
+    # return entry without embedding (internal only)
     entry_dict = entry.model_dump()
     entry_dict.pop("summaryEmbedding", None)
 
     return {"message": "Entry added with summary", "entry": entry_dict}
 
-# Fetch all entries from the .db database
+#GET: fetch all entries from the .db database
 @app.get("/journal/")
 def get_entries(search: Optional[str] = None):
     if search:
@@ -133,9 +133,10 @@ def get_entries(search: Optional[str] = None):
     return {"entries": entries}
 
 
+# PUT: update an existing entry in the .db database
 @app.put("/journal/{entry_id}")
 def update_entry(entry_id: str, updated_entry: JournalEntry):
-    # Fetch the original entry from the database
+    # fetch the original entry from the database
     cursor.execute("SELECT content, summary, prompt, promptType FROM journal_entries WHERE id = ?", (entry_id,))
     original_entry_row = cursor.fetchone()
 
@@ -145,7 +146,7 @@ def update_entry(entry_id: str, updated_entry: JournalEntry):
     original_content, original_summary, original_prompt, original_promptType = original_entry_row
 
     new_summary = original_summary
-    # If the content has changed, generate a new summary
+    # if the content has changed, generate a new summary
     if updated_entry.content != original_content:
         prompt_text = f"""Summarize this journal post in one short sentence, in the second person in past tense: \"{updated_entry.content}\""""
         try:
@@ -167,7 +168,7 @@ def update_entry(entry_id: str, updated_entry: JournalEntry):
         embedding = get_embedding(new_summary)
         new_embedding = embedding.tobytes()
 
-    # Update the database with the new content and summary
+    # update the database with the new content and summary
     cursor.execute(
         """
         UPDATE journal_entries
@@ -204,7 +205,7 @@ def update_entry(entry_id: str, updated_entry: JournalEntry):
 
 
 
-
+# DELETE: delete an entry from the .db database
 @app.delete("/journal/{entry_id}")
 def delete_entry(entry_id: str):
     cursor.execute("DELETE FROM journal_entries WHERE id = ?", (entry_id,))
@@ -220,6 +221,7 @@ class PromptRequest(BaseModel):
     recentEntries: List[JournalEntry]
     customPrompt: Optional[str] = None
 
+# POST II: generate a writing prompt based on query (RAG)
 @app.post("/generate-prompt")
 def generate_prompt(request: PromptRequest):
     # ----- SYSTEM MESSAGE -----
@@ -280,7 +282,7 @@ def generate_prompt(request: PromptRequest):
 
     # ----- ATTACH CONTEXT FROM ENTRIES -----
     if request.recentEntries:
-        # Only include entries marked for prompt generation
+        # only include entries marked for prompt generation
         filtered_recent_entries = [
             e for e in request.recentEntries 
             if e.use_for_prompt_generation is not False  # treat None/True as allowed
